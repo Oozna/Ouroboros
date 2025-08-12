@@ -13,7 +13,22 @@ pub fn build(b: *std.Build) void {
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{
+        .preferred_optimize_mode = .Debug,
+    });
+
+    const sdl_dep = b.dependency("sdl", .{
+        .target = target,
+        .optimize = optimize,
+        //.preferred_linkage = .static,
+        //.strip = null,
+        //.sanitize_c = null,
+        //.pic = null,
+        //.lto = null,
+        //.emscripten_pthreads = false,
+        //.install_build_config_h = false,
+    });
+    const sdl = sdl_dep.artifact("SDL3");
 
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
@@ -23,8 +38,9 @@ pub fn build(b: *std.Build) void {
         // complicated build scripts, this could be a generated file.
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .optimize = optimize,
     });
+
+    exe_mod.linkLibrary(sdl);
 
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
