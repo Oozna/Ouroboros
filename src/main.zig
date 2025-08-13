@@ -1,11 +1,7 @@
 const std = @import("std");
 
 const c = @cImport({
-    //@cDefine("SDL_DISABLE_OLD_NAMES", {});
     @cInclude("SDL3/SDL.h");
-    //@cInclude("SDL3/SDL_revision.h");
-    //@cDefine("SDL_MAIN_HANDLED", {}); // We are providing our own entry point
-    //@cInclude("SDL3/SDL_main.h");
 });
 
 const PROG_NAME = "draco";
@@ -28,12 +24,15 @@ pub fn main() !void {
     }
     defer c.SDL_Quit();
 
-    const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay());
+    const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay()) orelse {
+        c.SDL_Log("Could not get display mode! SDL error: %s\n", c.SDL_GetError());
+        return;
+    };
     setRefreshRate(display_mode.*.refresh_rate);
 
     _ = c.SDL_SetHint(c.SDL_HINT_WINDOW_ALLOW_TOPMOST, "1");
 
-    const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_MAXIMIZED;
+    const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_MAXIMIZED | c.SDL_WINDOW_RESIZABLE;
 
     if (!c.SDL_CreateWindowAndRenderer(PROG_NAME, W, H, win_flags, &window, &renderer)) {
         std.debug.print("Couldn't create window/renderer:", .{});
@@ -44,7 +43,6 @@ pub fn main() !void {
     var event: c.SDL_Event = undefined;
     while (running) {
         while (c.SDL_PollEvent(&event)) {
-            //If event is quit type
             if (event.type == c.SDL_EVENT_QUIT) {
                 running = false;
             }
