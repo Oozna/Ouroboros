@@ -10,8 +10,11 @@ const c = @cImport({
     @cInclude("SDL3_image/SDL_image.h");
 });
 
-pub fn drawText(font: ?*c.TTF_Font, text: [*c]const u8, color: Vec4, x: f32, y: f32) void {
-    const surface = c.TTF_RenderText_Blended(font, text, 0, asColor(color)) orelse return;
+pub fn drawText(font: ?*c.TTF_Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
+    if (text.len == 0) {
+        return;
+    }
+    const surface = c.TTF_RenderText_Blended(font, text.ptr, text.len, asColor(color)) orelse return;
     defer c.SDL_DestroySurface(surface);
     const texture = c.SDL_CreateTextureFromSurface(main.renderer, surface) orelse return;
     defer c.SDL_DestroyTexture(texture);
@@ -26,12 +29,13 @@ pub fn drawText(font: ?*c.TTF_Font, text: [*c]const u8, color: Vec4, x: f32, y: 
     _ = c.SDL_RenderTexture(main.renderer, texture, null, &dst);
 }
 
-pub fn str(s: []const u8) [*c]const u8 {
+pub fn str(s: []const u8) [:0]const u8 {
     const static = struct {
         var buffer: [2048]u8 = undefined;
     };
     return std.fmt.bufPrintZ(&static.buffer, "{s}", .{s}) catch {
-        return static.buffer[0..0];
+        static.buffer[0] = 0;
+        return static.buffer[0..1 :0];
     };
 }
 
