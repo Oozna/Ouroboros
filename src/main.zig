@@ -108,9 +108,14 @@ pub fn main() !void {
     loop();
 }
 
+var animating = false;
+var animation_progress: f32 = 1.0;
+var last_tick: i64 = 0;
+
+fn maybeAnimate() void {}
+
 fn loop() void {
-    var animating = false;
-    var animation_progress: f32 = 1.0;
+    last_tick = std.time.microTimestamp();
     var was_pos = Vec2{
         .x = -1.0,
         .y = -1.0,
@@ -118,6 +123,9 @@ fn loop() void {
     var running = true;
     var event: c.SDL_Event = undefined;
     while (running) {
+        const current_tick = std.time.microTimestamp();
+        defer last_tick = current_tick;
+        const dt = @as(f32, @floatFromInt(current_tick - last_tick)) * std.time.us_per_s;
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
                 c.SDL_EVENT_QUIT => {
@@ -135,41 +143,26 @@ fn loop() void {
                         },
                         c.SDLK_BACKSPACE => {
                             editor.window.removeFrontCursor();
-                            if (animation_progress >= 1.0) {
-                                animating = true;
-                                animation_progress = 0.0;
-                            }
+                            maybeAnimate();
                         },
                         c.SDLK_DELETE => {
                             editor.window.removeBehindCursor();
-                            if (animation_progress >= 1.0) {
-                                animating = true;
-                                animation_progress = 0.0;
-                            }
+                            maybeAnimate();
                         },
                         c.SDLK_LEFT => {
                             editor.window.left();
-                            if (animation_progress >= 1.0) {
-                                animating = true;
-                                animation_progress = 0.0;
-                            }
+                            maybeAnimate();
                         },
                         c.SDLK_RIGHT => {
                             editor.window.right();
-                            if (animation_progress >= 1.0) {
-                                animating = true;
-                                animation_progress = 0.0;
-                            }
+                            maybeAnimate();
                         },
                         else => {},
                     }
                 },
                 c.SDL_EVENT_TEXT_INPUT => {
                     editor.window.insert(std.mem.span(event.text.text));
-                    if (animation_progress >= 1.0) {
-                        animating = true;
-                        animation_progress = 0.0;
-                    }
+                    maybeAnimate();
                 },
                 else => {},
             }
@@ -178,40 +171,30 @@ fn loop() void {
             break;
         }
 
-        _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
-        _ = c.SDL_RenderClear(renderer);
-
         const dim = rend.strdim(body_font, editor.window.buffer.items[0..editor.window.cursor]);
         const is_pos = Vec2{
             .x = dim.w + 100.0,
             .y = 200.0,
         };
 
-        if (animating) {
-            animation_progress += @as(f32, @floatFromInt(refresh_rate_ns)) * 0.000_000_1;
-            if (animation_progress >= 1.0) {
-                animation_progress = 1.0;
-                animating = false;
-                was_pos = is_pos;
-            }
-        }
-
         if (was_pos.x == -1.0 and was_pos.y == -1.0) {
             was_pos = is_pos;
         }
 
+        std.debug.print("{}\n", .{dt});
         const rect = c.SDL_FRect{
-            .x = math.lerp(is_pos.x, was_pos.x, (animation_progress)),
-            .y = math.lerp(is_pos.y, was_pos.y, (animation_progress)),
+            .x = math.damp(is_pos.x, was_pos.x, 0.5, dt),
+            .y = math.damp(is_pos.y, was_pos.y, 0.5, dt),
             .w = 2.0,
             .h = 20.0,
         };
 
+        _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
+        _ = c.SDL_RenderClear(renderer);
         rend.drawText(header_font, "Title", FG, 100.0, 100.0);
         rend.drawText(body_font, editor.window.buffer.items, FG, 100.0, 200.0);
-        _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, math.square(animation_progress));
+        _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);
         _ = c.SDL_RenderFillRect(renderer, &rect);
-
         _ = c.SDL_RenderPresent(renderer);
 
         sleepNextFrame();

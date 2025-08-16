@@ -10,11 +10,16 @@ pub const Window = struct {
     buffer: std.ArrayList(u8),
     lines: std.ArrayList(Line),
     cursor: usize = 0,
+    row: usize = 0,
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         var arena = std.heap.ArenaAllocator.init(base_allocator);
         const buffer = try std.ArrayList(u8).initCapacity(arena.allocator(), 1024);
-        const lines = try std.ArrayList(Line).initCapacity(arena.allocator(), 128);
+        var lines = try std.ArrayList(Line).initCapacity(arena.allocator(), 128);
+        lines.appendAssumeCapacity(Line{
+            .begin = 0,
+            .end = 0,
+        });
         return Window{
             .arena = arena,
             .buffer = buffer,
