@@ -109,23 +109,22 @@ pub fn main() !void {
 }
 
 var animating = false;
-var animation_progress: f32 = 1.0;
 var last_tick: i64 = 0;
+var was_pos = Vec2{
+    .x = -1.0,
+    .y = -1.0,
+};
 
 fn maybeAnimate() void {}
 
 fn loop() void {
     last_tick = std.time.microTimestamp();
-    var was_pos = Vec2{
-        .x = -1.0,
-        .y = -1.0,
-    };
     var running = true;
     var event: c.SDL_Event = undefined;
     while (running) {
         const current_tick = std.time.microTimestamp();
         defer last_tick = current_tick;
-        const dt = @as(f32, @floatFromInt(current_tick - last_tick)) * std.time.us_per_s;
+        const dt = @as(f32, @floatFromInt(current_tick - last_tick)) / std.time.us_per_s;
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
                 c.SDL_EVENT_QUIT => {
@@ -181,10 +180,13 @@ fn loop() void {
             was_pos = is_pos;
         }
 
-        std.debug.print("{}\n", .{dt});
+        was_pos = .{
+            .x = math.damp(is_pos.x, was_pos.x, 0.0001, dt),
+            .y = math.damp(is_pos.y, was_pos.y, 0.0001, dt),
+        };
         const rect = c.SDL_FRect{
-            .x = math.damp(is_pos.x, was_pos.x, 0.5, dt),
-            .y = math.damp(is_pos.y, was_pos.y, 0.5, dt),
+            .x = was_pos.x,
+            .y = was_pos.y,
             .w = 2.0,
             .h = 20.0,
         };
