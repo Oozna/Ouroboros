@@ -89,6 +89,11 @@ pub fn main() !void {
     editor = try Editor.init(std.heap.c_allocator);
     defer editor.deinit();
 
+    const args = try std.process.argsAlloc(arena);
+    if (args.len > 1) {
+        editor.window.openFile(args[1]);
+    }
+
     const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay()) orelse {
         c.SDL_Log("Could not get display mode! SDL error: %s\n", c.SDL_GetError());
         return;
@@ -187,7 +192,7 @@ fn loop() void {
 fn draw(dt: f32) void {
     const offset_x = 100.0;
     const offset_y = 200.0;
-    const line_height = c.TTF_GetFontSize(body_font);
+    const line_height = c.TTF_GetFontSize(body_font) + 4.0;
 
     const cursor_data = editor.window.cursorDrawData();
     const dim = rend.strdim(body_font, cursor_data.text_left_of_cursor);
@@ -222,7 +227,7 @@ fn draw(dt: f32) void {
     rend.drawText(header_font, "Title  q8^)", FG, 100.0, 100.0);
     for (editor.window.allLines(), 0..) |_, idx| {
         const slice = editor.window.lineSlice(idx);
-        rend.drawText(body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(idx)) * c.TTF_GetFontSize(body_font));
+        rend.drawText(body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(idx)) * line_height);
     }
 
     _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);

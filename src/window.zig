@@ -14,6 +14,7 @@ pub const Window = struct {
     buffer: std.ArrayList(u8),
     lines: std.ArrayList(Line),
     cursor: usize = 0,
+    active_file: []const u8 = "",
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         var arena = std.heap.ArenaAllocator.init(base_allocator);
@@ -32,6 +33,50 @@ pub const Window = struct {
 
     pub fn deinit(self: *Window) void {
         self.arena.deinit();
+    }
+
+    pub fn openFile(self: *Window, filename: []const u8) void {
+        self.active_file = self.arena.allocator().dupe(u8, filename) catch @panic("OOM");
+        const file = std.fs.cwd().openFile(filename, .{}) catch |e| {
+            switch (e) {
+                error.FileNotFound => {
+                    std.debug.print("TODO: File does not exist, show that file is unwritten\n", .{});
+                },
+                error.NoSpaceLeft,
+                error.InvalidUtf8,
+                error.FileTooBig,
+                error.DeviceBusy,
+                error.AccessDenied,
+                error.SystemResources,
+                error.WouldBlock,
+                error.NoDevice,
+                error.Unexpected,
+                error.SharingViolation,
+                error.PathAlreadyExists,
+                error.PipeBusy,
+                error.NameTooLong,
+                error.InvalidWtf8,
+                error.BadPathName,
+                error.NetworkNotFound,
+                error.AntivirusInterference,
+                error.SymLinkLoop,
+                error.ProcessFdQuotaExceeded,
+                error.SystemFdQuotaExceeded,
+                error.IsDir,
+                error.NotDir,
+                error.FileLocksNotSupported,
+                error.FileBusy,
+                => {
+                    std.debug.print("TODO: Show this error better: {}\n", .{e});
+                },
+            }
+            return;
+        };
+        const writer = self.buffer.writer();
+        const reader = file.reader();
+        var fifo = std.fifo.LinearFifo(u8, .{ .Static = 8192 }).init();
+        fifo.pump(reader, writer) catch {};
+        self.reindex();
     }
 
     fn reindex(self: *Window) void {
@@ -107,16 +152,39 @@ pub const Window = struct {
         }
         assert(self.cursor < last_byte_index);
         const b = self.byte(self.cursor);
-        if (utf_2_mask & b == 0 or self.cursor + 1 == last_byte_index) {
+        if (b < 0x7F or self.cursor + 1 == last_byte_index) {
             return 1;
         }
-        if (utf_2_mask & b != 1 or self.cursor + 2 == last_byte_index) {
+        if (utf_2_mask & b != 0 or self.cursor + 2 == last_byte_index) {
             return 2;
         }
-        if (utf_3_mask & b != 1 or self.cursor + 3 == last_byte_index) {
+        if (utf_3_mask & b != 0 or self.cursor + 3 == last_byte_index) {
             return 3;
         }
         return 4;
+    }
+
+    fn codepointsLeftOfCursor(self: *Window) usize {
+        const pos = self.cursorPos();
+        const line = self.allLines()[pos.row];
+        const slice = self.buffer.items[line.begin..self.cursor];
+        return std.unicode.utf8CountCodepoints(slice) catch self.cursor - line.begin;
+    }
+
+    fn byteOfNthCodepointOfLine(self: *Window, line: Line, n: usize) usize {
+        const slice = self.buffer.items[line.begin..line.end];
+        const view = std.unicode.Utf8View.init(slice) catch @panic("OOPS");
+        var result: usize = 0;
+        var i: usize = 0;
+        var it = view.iterator();
+        while (it.nextCodepointSlice()) |u| {
+            if (i >= n) {
+                break;
+            }
+            result += u.len;
+            i += 1;
+        }
+        return result;
     }
 
     pub fn left(self: *Window) void {
@@ -139,8 +207,10 @@ pub const Window = struct {
             return;
         }
         const line = self.allLines()[pos.row - 1];
+        const left_of_cursor = codepointsLeftOfCursor(self);
+        const bytes_to_skip = self.byteOfNthCodepointOfLine(line, left_of_cursor);
 
-        self.cursor = @min(line.begin + pos.column, line.end);
+        self.cursor = @min(line.begin + bytes_to_skip, line.end);
     }
 
     pub fn down(self: *Window) void {
@@ -149,8 +219,10 @@ pub const Window = struct {
             return;
         }
         const line = self.allLines()[pos.row + 1];
+        const left_of_cursor = codepointsLeftOfCursor(self);
+        const bytes_to_skip = self.byteOfNthCodepointOfLine(line, left_of_cursor);
 
-        self.cursor = @min(line.begin + pos.column, line.end);
+        self.cursor = @min(line.begin + bytes_to_skip, line.end);
     }
 
     pub fn removeRightCursor(self: *Window) void {
