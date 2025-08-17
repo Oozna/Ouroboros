@@ -143,10 +143,10 @@ fn loop() void {
                             editor.window.insertNewline();
                         },
                         c.SDLK_BACKSPACE => {
-                            editor.window.removeFrontCursor();
+                            editor.window.removeLeftCursor();
                         },
                         c.SDLK_DELETE => {
-                            editor.window.removeBehindCursor();
+                            editor.window.removeRightCursor();
                         },
                         c.SDLK_LEFT => {
                             editor.window.left();
