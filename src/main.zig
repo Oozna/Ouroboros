@@ -154,6 +154,12 @@ fn loop() void {
                         c.SDLK_RIGHT => {
                             editor.window.right();
                         },
+                        c.SDLK_UP => {
+                            editor.window.up();
+                        },
+                        c.SDLK_DOWN => {
+                            editor.window.down();
+                        },
                         else => {},
                     }
                 },
@@ -183,11 +189,11 @@ fn draw(dt: f32) void {
     const offset_y = 200.0;
     const line_height = c.TTF_GetFontSize(body_font);
 
-    const cursor_pos = editor.window.cursorPos();
-    const dim = rend.strdim(body_font, cursor_pos.text_left_of_cursor);
+    const cursor_data = editor.window.cursorDrawData();
+    const dim = rend.strdim(body_font, cursor_data.text_left_of_cursor);
     const is_pos = Vec2{
         .x = offset_x + dim.w,
-        .y = offset_y + line_height * cursor_pos.row,
+        .y = offset_y + line_height * cursor_data.row,
     };
 
     if (was_pos.x == -1.0 and was_pos.y == -1.0) {
@@ -198,10 +204,12 @@ fn draw(dt: f32) void {
 
     const dampning = 0.001;
     const dt_mult = 2;
+
     was_pos = .{
         .x = math.damp(is_pos.x, was_pos.x, dampning, dt * dt_mult),
         .y = math.damp(is_pos.y, was_pos.y, dampning, dt * dt_mult),
     };
+
     const rect = c.SDL_FRect{
         .x = was_pos.x,
         .y = was_pos.y,
@@ -211,7 +219,7 @@ fn draw(dt: f32) void {
 
     _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
     _ = c.SDL_RenderClear(renderer);
-    rend.drawText(header_font, "Title", FG, 100.0, 100.0);
+    rend.drawText(header_font, "Title  q8^)", FG, 100.0, 100.0);
     for (editor.window.allLines(), 0..) |_, idx| {
         const slice = editor.window.lineSlice(idx);
         rend.drawText(body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(idx)) * c.TTF_GetFontSize(body_font));

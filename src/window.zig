@@ -12,7 +12,6 @@ pub const Window = struct {
     buffer: std.ArrayList(u8),
     lines: std.ArrayList(Line),
     cursor: usize = 0,
-    row: usize = 0,
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         var arena = std.heap.ArenaAllocator.init(base_allocator);
@@ -82,15 +81,23 @@ pub const Window = struct {
     }
 
     pub fn up(self: *Window) void {
-        if (self.row > 0) {
-            self.row -= 1;
+        const pos = self.cursorPos();
+        if (pos.row <= 0) {
+            return;
         }
+        const line = self.allLines()[pos.row - 1];
+
+        self.cursor = @min(line.begin + pos.column, line.end);
     }
 
     pub fn down(self: *Window) void {
-        if (self.row < self.lines.items.len) {
-            self.row += 1;
+        const pos = self.cursorPos();
+        if (pos.row + 1 >= self.allLines().len) {
+            return;
         }
+        const line = self.allLines()[pos.row + 1];
+
+        self.cursor = @min(line.begin + pos.column, line.end);
     }
 
     pub fn removeBehindCursor(self: *Window) void {
@@ -118,18 +125,30 @@ pub const Window = struct {
     }
 
     pub fn cursorPos(self: *Window) struct {
-        row: f32,
-        text_left_of_cursor: []const u8,
+        row: usize,
+        column: usize,
     } {
         const cursor = self.cursor;
         for (self.allLines(), 0..) |line, idx| {
             if (cursor >= line.begin and cursor <= line.end) {
                 return .{
-                    .row = @floatFromInt(idx),
-                    .text_left_of_cursor = self.buffer.items[line.begin..cursor],
+                    .row = idx,
+                    .column = cursor - line.begin,
                 };
             }
         }
         unreachable;
+    }
+
+    pub fn cursorDrawData(self: *Window) struct {
+        row: f32,
+        text_left_of_cursor: []const u8,
+    } {
+        const pos = self.cursorPos();
+        const line = self.lines.items[pos.row];
+        return .{
+            .row = @floatFromInt(pos.row),
+            .text_left_of_cursor = self.buffer.items[line.begin .. line.begin + pos.column],
+        };
     }
 };
