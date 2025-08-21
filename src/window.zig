@@ -149,7 +149,7 @@ pub const Window = struct {
                 if (word_dim.w + x > max_width) {
                     try self.virtual_lines.append(.{
                         .begin = virtual_line_begin,
-                        .end = i,
+                        .end = i - 1,
                     });
                     x = 0;
                     word_begin = i;
