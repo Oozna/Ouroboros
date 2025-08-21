@@ -5,7 +5,7 @@ const Vec2 = @import("math.zig").Vec2;
 
 const assert = std.debug.assert;
 
-const Line = struct {
+const RealLine = struct {
     begin: usize,
     end: usize,
     virtual_lines: VirtualLine = .{
@@ -22,7 +22,7 @@ const VirtualLine = struct {
 pub const Window = struct {
     arena: std.heap.ArenaAllocator,
     buffer: std.ArrayList(u8),
-    lines: std.ArrayList(Line),
+    lines: std.ArrayList(RealLine),
     virtual_lines: std.ArrayList(VirtualLine),
     cursor: usize = 0,
     active_file: []const u8 = "",
@@ -31,8 +31,8 @@ pub const Window = struct {
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         const arena = std.heap.ArenaAllocator.init(base_allocator);
         const buffer = try std.ArrayList(u8).initCapacity(base_allocator, 1024);
-        var lines = try std.ArrayList(Line).initCapacity(base_allocator, 128);
-        lines.appendAssumeCapacity(Line{
+        var lines = try std.ArrayList(RealLine).initCapacity(base_allocator, 128);
+        lines.appendAssumeCapacity(RealLine{
             .begin = 0,
             .end = 0,
         });
@@ -345,7 +345,7 @@ pub const Window = struct {
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
-    pub fn allRealLines(self: *Window) []const Line {
+    pub fn allRealLines(self: *Window) []const RealLine {
         return self.lines.items;
     }
 
