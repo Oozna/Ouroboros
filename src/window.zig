@@ -132,12 +132,12 @@ pub const Window = struct {
 
         const max_width = 800; //TODO: no hardcoded
 
-        for (self.allLines(), 0..) |_, idx| {
+        for (self.allLines(), 0..) |line, idx| {
             const virtual_line_slice_begin = self.virtual_lines.items.len;
-            const line_slice = self.lineSlice(idx);
-            var virtual_line_begin: usize = 0;
-            var word_begin: usize = 0;
-            var i: usize = 0;
+            const line_slice = self.buffer.items[0..line.end];
+            var virtual_line_begin: usize = line.begin;
+            var word_begin: usize = line.begin;
+            var i: usize = line.begin;
             var x: f32 = 0;
             while (i < line_slice.len) : (i += 1) {
                 if (line_slice[i] != ' ') {
@@ -379,18 +379,17 @@ pub const Window = struct {
         virtual_row: usize,
         column: usize,
     } {
-        std.debug.print("virt {any}\n", .{self.virtual_lines.items});
         const cursor = self.cursor;
         for (self.allLines()) |line| {
             if (cursor >= line.begin and cursor <= line.end) {
-                std.debug.print("{} is between {} and {}\n", .{ cursor, line.begin, line.end });
+                //std.debug.print("{} is between {} and {}\n", .{ cursor, line.begin, line.end });
                 const slice = self.virtual_lines.items[line.virtual_lines.begin..line.virtual_lines.end];
                 for (slice, 0..) |virt_line, idx| {
-                    std.debug.print("test {} of {} if {} is perhaps between {} and {}\n", .{ idx + 1, slice.len, cursor, virt_line.begin, virt_line.end });
+                    //std.debug.print("test {} of {} if {} is perhaps between {} and {}\n", .{ idx + 1, slice.len, cursor, virt_line.begin, virt_line.end });
                     if (cursor >= virt_line.begin and cursor <= virt_line.end) {
                         return .{
                             .virtual_row = idx,
-                            .column = cursor - line.begin,
+                            .column = cursor - virt_line.begin,
                         };
                     }
                 }
