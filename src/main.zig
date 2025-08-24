@@ -150,11 +150,6 @@ fn loop() void {
                         c.SDLK_ESCAPE => {
                             running = false;
                         },
-                        c.SDLK_A => {
-                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
-                                std.debug.print("A PRESSED\n", .{});
-                            }
-                        },
                         c.SDLK_RETURN => {
                             editor.window.insertNewline();
                         },
@@ -198,6 +193,11 @@ fn loop() void {
                             if (event.key.mod & (c.SDL_KMOD_CTRL | c.SDL_KMOD_SHIFT) != 0) {
                                 zoom_scalar = 1.0;
                                 _ = c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                            }
+                        },
+                        c.SDLK_S => {
+                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                                editor.window.save();
                             }
                         },
                         else => {},

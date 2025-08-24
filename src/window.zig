@@ -103,6 +103,17 @@ pub const Window = struct {
         self.reindex();
     }
 
+    pub fn save(self: *Window) void {
+        const file = std.fs.cwd().openFile(self.active_file, .{ .mode = .write_only }) catch |e| {
+            std.debug.print("error: {}\n", .{e});
+            return;
+        };
+        file.writeAll(self.buffer.items) catch |e| {
+            std.debug.print("error: {}\n", .{e});
+            return;
+        };
+    }
+
     fn reindex(self: *Window) void {
         self.reindexRealLines() catch @panic("OOM");
         self.reindexVirtualLines() catch @panic("OOM");
