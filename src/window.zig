@@ -230,10 +230,9 @@ pub const Window = struct {
 
     fn bytesUntilNearestCodepointRight(self: *Window) usize {
         const last_byte_index = @max(self.buffer.items.len, 1) - 1;
-        if (self.cursor == last_byte_index) {
+        if (self.cursor >= last_byte_index) {
             return 0;
         }
-        assert(self.cursor < last_byte_index);
         const b = self.byte(self.cursor);
         if (b < 0x7F or self.cursor + 1 == last_byte_index) {
             return 1;
@@ -250,7 +249,7 @@ pub const Window = struct {
     fn codepointsLeftOfCursor(self: *Window) usize {
         const pos = self.virtualCursorPos();
         const line = self.allVirtualLines()[pos.virtual_row];
-        const slice = self.buffer.items[line.begin..self.cursor];
+        const slice = self.buffer.items[line.begin..@min(self.buffer.items.len, self.cursor)];
         return std.unicode.utf8CountCodepoints(slice) catch self.cursor - line.begin;
     }
 
@@ -284,7 +283,7 @@ pub const Window = struct {
             return;
         }
         const n = self.bytesUntilNearestCodepointRight();
-        self.cursor += n;
+        self.cursor += if (n > 0) n else 1;
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
@@ -381,7 +380,10 @@ pub const Window = struct {
                 }
             }
         }
-        unreachable;
+        return .{
+            .virtual_row = 0,
+            .column = 0,
+        };
     }
 
     pub fn cursorDrawData(self: *Window) struct {
