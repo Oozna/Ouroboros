@@ -236,8 +236,7 @@ fn draw(dt: f32) void {
     const offset_y = 200.0;
     const line_height = c.TTF_GetFontSize(rend.body_font) + 4.0;
 
-    const lines_on_screen = (H - offset_y) / line_height;
-    std.debug.print("lines_on_sceen: {d}\n", .{lines_on_screen});
+    editor.window.lines_on_screen = @intFromFloat((H - offset_y) / line_height);
 
     const static = struct {
         var buffer: [1024]u8 = undefined;
@@ -274,17 +273,17 @@ fn draw(dt: f32) void {
     _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
     _ = c.SDL_RenderClear(renderer);
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
-    var n_virtual_line: usize = 0;
+    var n_virtual_line: i64 = 0;
     for (editor.window.allRealLines(), 0..) |_, idx| {
         const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
         const line_no_dim = rend.strdim(rend.body_font, line_no_str);
-        rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
+        rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, offset_y + @as(f32, @floatFromInt(n_virtual_line - editor.window.scroll_offset)) * line_height);
 
         const virtual_lines = editor.window.virtualLines(idx);
 
         for (virtual_lines) |virtual_line| {
             const slice = editor.window.buffer.items[virtual_line.begin..virtual_line.end];
-            rend.drawText(rend.body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
+            rend.drawText(rend.body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(n_virtual_line - editor.window.scroll_offset)) * line_height);
             n_virtual_line += 1;
         }
     }

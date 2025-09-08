@@ -27,6 +27,8 @@ pub const Window = struct {
     cursor: usize = 0,
     active_file: []const u8 = "",
     rightmost_cursor_codepoint: usize = 0,
+    scroll_offset: i64 = 0,
+    lines_on_screen: i64 = 1,
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         const arena = std.heap.ArenaAllocator.init(base_allocator);
@@ -306,6 +308,10 @@ pub const Window = struct {
         const line = self.allVirtualLines()[pos.virtual_row - 1];
         const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
+
+        if (pos.virtual_row < self.scroll_offset + self.lines_on_screen) {
+            self.scroll_offset -= 1;
+        }
     }
 
     pub fn down(self: *Window) void {
@@ -316,6 +322,10 @@ pub const Window = struct {
         const line = self.allVirtualLines()[pos.virtual_row + 1];
         const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
+
+        if (pos.virtual_row + 1 > self.scroll_offset + self.lines_on_screen) {
+            self.scroll_offset += 1;
+        }
     }
 
     pub fn beginningOfLine(self: *Window) void {
