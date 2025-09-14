@@ -185,7 +185,7 @@ pub const Window = struct {
             }
             try self.virtual_lines.append(.{
                 .begin = virtual_line_begin,
-                .end = i,
+                .end = @min(i, line_slice.len),
             });
 
             const virtual_line_slice_end = self.virtual_lines.items.len;
