@@ -212,7 +212,10 @@ pub const Window = struct {
         self.buffer.insert(self.base_allocator, self.cursor, '\n') catch @panic("OOM");
         self.reindex();
         self.cursor += 1;
-        self.down();
+        const pos = self.virtualCursorPos();
+        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
+            self.scroll_offset += 1;
+        }
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
@@ -321,7 +324,7 @@ pub const Window = struct {
 
     pub fn down(self: *Window) void {
         const pos = self.virtualCursorPos();
-        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
+        if (pos.virtual_row + 2 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
         }
         if (pos.virtual_row + 1 >= self.allVirtualLines().len) {
