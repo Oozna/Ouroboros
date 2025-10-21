@@ -79,7 +79,8 @@ pub fn main() !void {
         std.debug.print("Couldn't open font: {any}\n", .{e});
         return;
     };
-    font_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/TinosNerdFont-Regular.ttf", 10_000_000) catch |e| {
+    //font_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/TinosNerdFont-Regular.ttf", 10_000_000) catch |e| {
+    font_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf", 10_000_000) catch |e| {
         std.debug.print("Couldn't open font: {any}\n", .{e});
         return;
     };
@@ -125,7 +126,6 @@ var was_pos = Vec2{
 };
 var zoom_scalar: f32 = 1.0;
 var ctrl_down = false;
-var viewport = Vec2{};
 
 fn loop() void {
     var running = true;

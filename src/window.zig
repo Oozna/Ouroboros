@@ -30,6 +30,8 @@ pub const Window = struct {
     rightmost_cursor_codepoint: usize = 0,
     scroll_offset: i64 = 0,
     lines_on_screen: i64 = 1,
+    width: f32 = 0,
+    height: f32 = 0,
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
         const arena = std.heap.ArenaAllocator.init(base_allocator);
@@ -58,6 +60,11 @@ pub const Window = struct {
         self.lines.deinit(self.base_allocator);
         self.virtual_lines.deinit(self.base_allocator);
         self.arena.deinit();
+    }
+
+    pub fn resize(self: *Window, width: f32, height: f32) void {
+        self.width = width;
+        self.height = height;
     }
 
     pub fn openFile(self: *Window, filename: []const u8) void {
@@ -100,14 +107,16 @@ pub const Window = struct {
             return;
         };
         var writer = std.Io.Writer.Allocating.init(self.base_allocator);
-        defer self.buffer = writer.toArrayList();
+        defer {
+            self.buffer = writer.toArrayList();
+            self.reindex();
+        }
         var buffer: [2048]u8 = undefined;
         var reader = file.reader(&buffer);
         _ = reader.interface.streamRemaining(&writer.writer) catch |e| {
             std.debug.print("{any}\n", .{e});
             unreachable;
         };
-        self.reindex();
     }
 
     pub fn save(self: *Window) void {
