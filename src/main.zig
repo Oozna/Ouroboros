@@ -272,7 +272,7 @@ fn draw(dt: f32) void {
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.0 * zoom_scalar,
-        .h = 20.0 * zoom_scalar,
+        .h = 24.0 * zoom_scalar,
     };
 
     _ = rend.c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);

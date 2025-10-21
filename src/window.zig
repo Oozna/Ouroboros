@@ -333,6 +333,8 @@ pub const Window = struct {
 
     pub fn down(self: *Window) void {
         const pos = self.virtualCursorPos();
+        std.debug.print("pos.virtual_row: {} self.scroll_offset: {}, self.lines_on_screen: {}\n", .{ pos.virtual_row, self.scroll_offset, self.lines_on_screen });
+        std.debug.print("lhs: {}, rhs: {}\n", .{ pos.virtual_row + 2, self.scroll_offset + self.lines_on_screen });
         if (pos.virtual_row + 2 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
         }
